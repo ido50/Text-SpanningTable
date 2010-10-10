@@ -5,6 +5,32 @@ use strict;
 
 # ABSTRACT: ASCII tables with support for column spanning.
 
+our $C = {
+	top => {
+		left	=> '.-',
+		border	=> '-',
+		sep	=> '-+-',
+		right	=> '-.',
+	},
+	middle => {
+		left	=> '+-',
+		border	=> '-',
+		sep	=> '-+-',
+		right	=> '-+',
+	},
+	bottom => {
+		left	=> "'-",
+		border	=> '-',
+		sep	=> '-+-',
+		right	=> "-'",
+	},
+	row => {
+		left	=> '| ',
+		sep	=> ' | ',
+		right	=> ' |',
+	},
+};
+
 =head1 NAME
 
 Text::FlexiTable - ASCII tables with support for column spanning.
@@ -14,6 +40,71 @@ Text::FlexiTable - ASCII tables with support for column spanning.
 =head1 DESCRIPTION
 
 =head1 METHODS
+
+=head2 new( @col_lengths )
+
+=cut
+
+sub new {
+	my ($class, @cols) = @_;
+
+	my $width;
+	
+	unless (@cols) {
+		$width = 100;
+		@cols = (100);
+	}
+
+	foreach (@cols) {
+		$width += $_;
+	}
+
+	return bless { cols => \@cols, width => $width }, $class;
+}
+
+=head2 hr( ['top'|'middle'|'bottom'] )
+
+=cut
+
+sub hr {
+	my ($self, $type) = @_;
+
+	$type ||= 'middle';
+
+	my $output = $C->{$type}->{left};
+
+	for (my $i = 0; $i < scalar @{$self->{cols}}; $i++) {
+		my $num = $self->{cols}->[$i] - 4;
+		$output .= $C->{$type}->{border} x$num;
+		
+		$output .= $C->{$type}->{sep} unless $i == (scalar @{$self->{cols}} - 1);
+	}
+
+	$output .= $C->{$type}->{right} . "\n";
+
+	return $output;
+}
+
+=head2 row( @col_data )
+
+=cut
+
+sub row {
+	my $self = shift;
+
+	my $output = $C->{row}->{left};
+
+	for (my $i = 0; $i < scalar @{$self->{cols}}; $i++) {
+		my $num = $self->{cols}->[$i] - 4 - length($_[$i]);
+		$output .= $_[$i] . ' 'x$num;
+		
+		$output .= $C->{row}->{sep} unless $i == (scalar @{$self->{cols}} - 1);
+	}
+
+	$output .= $C->{row}->{right} . "\n";
+
+	return $output;
+}
 
 =head1 AUTHOR
 
