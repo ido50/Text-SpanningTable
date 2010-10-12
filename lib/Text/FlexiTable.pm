@@ -85,23 +85,52 @@ sub hr {
 	return $output;
 }
 
+# create a matrix that will hold all columns and 'pseudo-rows' of the row
+
+
 =head2 row( @col_data )
 
 =cut
 
 sub row {
-	my $self = shift;
+	my ($self, @data) = @_;
 
-	my $output = $C->{row}->{left};
-
-	for (my $i = 0; $i < scalar @{$self->{cols}}; $i++) {
-		my $num = $self->{cols}->[$i] - 4 - length($_[$i]);
-		$output .= $_[$i] . ' 'x$num;
+	my @rows;
+	for (my $i = 0; $i < scalar @data; $i++) {
+		$data[$i] .= ' 'x(4 - length($data[$i])) if length($data[$i]) < 4;
+		my $new_string = '';
+		my $width = $self->{cols}->[$i] - 4;
+		if (length($data[$i]) > $width) {
+			while (length($data[$i]) && length($data[$i]) > $width) {
+				if (substr($data[$i], $width - 1, 1) =~ m/^\s+$/) {
+					$new_string .= substr($data[$i], 0, $width, '') . "\n";
+				} elsif (substr($data[$i], $width, 1) =~ m/^\s+$/) {
+					$new_string .= substr($data[$i], 0, $width, '') . "\n";
+				} else {
+					$new_string .= substr($data[$i], 0, $width - 1, '') . "-\n";
+				}
+			}
+			$new_string .= $data[$i] if length($data[$i]);
+		} else {
+			$new_string = $data[$i];
+		}
 		
-		$output .= $C->{row}->{sep} unless $i == (scalar @{$self->{cols}} - 1);
+		my @fake_rows = split(/\n/, $new_string);
+		for (my $j = 0; $j < scalar @fake_rows; $j++) {
+			$rows[$j]->[$i] = $fake_rows[$j];
+		}
 	}
 
-	$output .= $C->{row}->{right} . "\n";
+	my $output = '';
+	for (my $i = 0; $i < scalar @rows; $i++) {
+		$output .= $C->{row}->{left};
+		for (my $j = 0; $j < scalar @{$self->{cols}}; $j++) {
+			my $width = $self->{cols}->[$j] - 4;
+			$output .= exists $rows[$i]->[$j] ? $rows[$i]->[$j] . ' 'x($width - length($rows[$i]->[$j])) : ' 'x$width;
+			$output .= $C->{row}->{sep} unless $j == (scalar @{$rows[$i]} - 1);
+		}
+		$output .= $C->{row}->{right} . "\n";
+	}
 
 	return $output;
 }
