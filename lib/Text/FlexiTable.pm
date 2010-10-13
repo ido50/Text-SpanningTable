@@ -85,9 +85,6 @@ sub hr {
 	return $output;
 }
 
-# create a matrix that will hold all columns and 'pseudo-rows' of the row
-
-
 =head2 row( @col_data )
 
 =cut
@@ -96,40 +93,105 @@ sub row {
 	my ($self, @data) = @_;
 
 	my @rows;
+	my $done = 0;
 	for (my $i = 0; $i < scalar @data; $i++) {
-		$data[$i] .= ' 'x(4 - length($data[$i])) if length($data[$i]) < 4;
+		# is this a spanning column? what is the width of it
+		my $width = 0;
+		my $text;
+		if (ref $data[$i] eq 'ARRAY') {
+			$text = $data[$i]->[1];
+			foreach (0 .. $data[$i]->[0] - 1) {
+				# $data[$i]->[0] is the number of columns this column spans
+				$width += $self->{cols}->[$done + $_];
+			}
+			$width -= $data[$i]->[0] - 1;
+			$done += $data[$i]->[0];
+		} else {
+			$text = $data[$i];
+			$width = $self->{cols}->[$done];
+			$done++;
+		}
+		$width -= 4;
+
+		# make sure the column's data is at least 4 characters long
+		# (because we're subtracting four from every column to make
+		#  room for the borders and separators)
+		$text .= ' 'x(4 - length($text)) if length($text) < 4;
+
 		my $new_string = '';
-		my $width = $self->{cols}->[$i] - 4;
-		if (length($data[$i]) > $width) {
-			while (length($data[$i]) && length($data[$i]) > $width) {
-				if (substr($data[$i], $width - 1, 1) =~ m/^\s+$/) {
-					$new_string .= substr($data[$i], 0, $width, '') . "\n";
-				} elsif (substr($data[$i], $width, 1) =~ m/^\s+$/) {
-					$new_string .= substr($data[$i], 0, $width, '') . "\n";
+		if (length($text) > $width) {
+			while (length($text) && length($text) > $width) {
+				if (substr($text, $width - 1, 1) =~ m/^\s$/) {
+					$new_string .= substr($text, 0, $width, '') . "\n";
+				} elsif (substr($text, $width - 2, 1) =~ m/^\s$/) {
+					$new_string .= substr($text, 0, $width - 1, '') . " \n";
+				} elsif (substr($text, $width, 1) =~ m/^\s$/) {
+					$new_string .= substr($text, 0, $width, '') . "\n";
 				} else {
-					$new_string .= substr($data[$i], 0, $width - 1, '') . "-\n";
+					$new_string .= substr($text, 0, $width - 1, '') . "-\n";
 				}
 			}
-			$new_string .= $data[$i] if length($data[$i]);
+			$new_string .= $text if length($text);
 		} else {
-			$new_string = $data[$i];
+			$new_string = $text;
 		}
 		
 		my @fake_rows = split(/\n/, $new_string);
 		for (my $j = 0; $j < scalar @fake_rows; $j++) {
-			$rows[$j]->[$i] = $fake_rows[$j];
+			$rows[$j]->[$i] = ref $data[$i] eq 'ARRAY' ? [$data[$i]->[0], $fake_rows[$j]] : $fake_rows[$j];
+		}
+	}
+
+	for (my $i = 1; $i < scalar @rows; $i++) {
+		for (my $j = 0; $j < scalar @{$self->{cols}}; $j++) {
+			next if $rows[$i]->[$j];
+			
+			if (ref $rows[$i - 1]->[$j] eq 'ARRAY') {				
+				my $width = length($rows[$i - 1]->[$j]->[1]);
+				$rows[$i]->[$j] = [$rows[$i - 1]->[$j]->[0], ' 'x$width];
+			}
 		}
 	}
 
 	my $output = '';
 	for (my $i = 0; $i < scalar @rows; $i++) {
 		$output .= $C->{row}->{left};
-		for (my $j = 0; $j < scalar @{$self->{cols}}; $j++) {
-			my $width = $self->{cols}->[$j] - 4;
-			my $shit = exists $rows[$i]->[$j] && length($rows[$i]->[$j]) ? $rows[$i]->[$j] . ' 'x($width - length($rows[$i]->[$j])) : ' 'x$width;
-			$output .= $shit;
-			$output .= $C->{row}->{sep} unless $j == (scalar @{$self->{cols}} - 1);
+		
+		my $push = 0;
+		
+		for (my $j = 0; $j < scalar @{$rows[$i]}; $j++) {
+			my $width = 0;
+			my $text;
+			
+			if (ref $rows[$i]->[$j] eq 'ARRAY') {
+				$text = $rows[$i]->[$j]->[1];
+				foreach (0 .. $rows[$i]->[$j]->[0] - 1) {
+					$width += $self->{cols}->[$push + $_];
+				}
+				$width -= $rows[$i]->[$j]->[0] - 1;
+			} else {
+				$text = $rows[$i]->[$j];
+				$width = $self->{cols}->[$push];
+			}
+			$width -= 4;
+
+			$output .= $text && length($text) ? $text . ' 'x($width - length($text)) : ' 'x$width;
+			
+			$push += ref $rows[$i]->[$j] eq 'ARRAY' ? $rows[$i]->[$j]->[0] : 1;
+
+			$output .= $C->{row}->{sep} unless $push == (scalar @{$self->{cols}});
 		}
+		
+		my $left = scalar @{$self->{cols}} - $push;
+		
+		if ($left) {
+			for (my $k = 1; $k <= $left; $k++) {
+				my $width = $self->{cols}->[$push++] - 4;
+				$output .= ' 'x$width;
+				$output .= $C->{row}->{sep} unless $k == $left;
+			}
+		}
+		
 		$output .= $C->{row}->{right} . "\n";
 	}
 
