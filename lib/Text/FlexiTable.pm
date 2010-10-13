@@ -59,7 +59,15 @@ sub new {
 		$width += $_;
 	}
 
-	return bless { cols => \@cols, width => $width }, $class;
+	return bless { cols => \@cols, width => $width, newlines => 0 }, $class;
+}
+
+=head2 newlines( $boolean )
+
+=cut
+
+sub newlines {
+	$_[0]->{newlines} = $_[1];
 }
 
 =head2 hr( ['top'|'middle'|'bottom'] )
@@ -80,7 +88,8 @@ sub hr {
 		$output .= $C->{$type}->{sep} unless $i == (scalar @{$self->{cols}} - 1);
 	}
 
-	$output .= $C->{$type}->{right} . "\n";
+	$output .= $C->{$type}->{right};
+	$output .= "\n" if $self->{newlines};
 
 	return $output;
 }
@@ -198,7 +207,11 @@ sub row {
 	if (wantarray) {
 		my @ret = split(/\n/, $output);
 		foreach (@ret) {
-			$_ .= "\n" unless m/\n$/;
+			if ($self->{newlines}) {
+				$_ .= "\n" unless m/\n$/;
+			} else {
+				s/\n$//;
+			}
 		}
 		return @ret;
 	} else {
