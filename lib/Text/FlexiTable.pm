@@ -126,13 +126,22 @@ sub row {
 		$output .= $C->{row}->{left};
 		for (my $j = 0; $j < scalar @{$self->{cols}}; $j++) {
 			my $width = $self->{cols}->[$j] - 4;
-			$output .= exists $rows[$i]->[$j] ? $rows[$i]->[$j] . ' 'x($width - length($rows[$i]->[$j])) : ' 'x$width;
-			$output .= $C->{row}->{sep} unless $j == (scalar @{$rows[$i]} - 1);
+			my $shit = exists $rows[$i]->[$j] && length($rows[$i]->[$j]) ? $rows[$i]->[$j] . ' 'x($width - length($rows[$i]->[$j])) : ' 'x$width;
+			$output .= $shit;
+			$output .= $C->{row}->{sep} unless $j == (scalar @{$self->{cols}} - 1);
 		}
 		$output .= $C->{row}->{right} . "\n";
 	}
 
-	return $output;
+	if (wantarray) {
+		my @ret = split(/\n/, $output);
+		foreach (@ret) {
+			$_ .= "\n" unless m/\n$/;
+		}
+		return @ret;
+	} else {
+		return $output;
+	}
 }
 
 =head1 AUTHOR
