@@ -18,6 +18,12 @@ our $C = {
 		sep	=> '-+-',
 		right	=> '-+',
 	},
+	dhr => {
+		left	=> '+=',
+		border	=> '=',
+		sep	=> '=+=',
+		right	=> '=+',
+	},
 	bottom => {
 		left	=> "'-",
 		border	=> '-',
@@ -92,6 +98,14 @@ sub hr {
 	$output .= "\n" if $self->{newlines};
 
 	return $output;
+}
+
+=head2 dhr()
+
+=cut
+
+sub dhr {
+	return shift->hr('dhr');
 }
 
 =head2 row( @col_data )
