@@ -65,7 +65,11 @@ sub new {
 		$width += $_;
 	}
 
-	return bless { cols => \@cols, width => $width, newlines => 0 }, $class;
+	return bless {
+		cols => \@cols,
+		width => $width,
+		newlines => 0,
+	}, $class;
 }
 
 =head2 newlines( $boolean )
@@ -74,6 +78,17 @@ sub new {
 
 sub newlines {
 	$_[0]->{newlines} = $_[1];
+}
+
+=head2 exec( \&sub )
+
+=cut
+
+sub exec {
+	my $self = shift;
+
+	$self->{exec} = shift;
+	$self->{args} = \@_ if scalar @_;
 }
 
 =head2 hr( ['top'|'middle'|'bottom'] )
@@ -96,6 +111,12 @@ sub hr {
 
 	$output .= $C->{$type}->{right};
 	$output .= "\n" if $self->{newlines};
+
+	if ($self->{exec}) {
+		my @args = ($output);
+		unshift(@args, @{$self->{args}}) if $self->{args};
+		$self->{exec}->(@args);
+	}
 
 	return $output;
 }
@@ -216,6 +237,17 @@ sub row {
 		}
 		
 		$output .= $C->{row}->{right} . "\n";
+	}
+
+	if ($self->{exec}) {
+		my @args;
+		push(@args, @{$self->{args}}) if $self->{args};
+		foreach (split/\n/, $output) {
+			chomp;
+			push(@args, $_);
+			$self->{exec}->(@args);
+			pop @args;
+		}
 	}
 
 	if (wantarray) {
