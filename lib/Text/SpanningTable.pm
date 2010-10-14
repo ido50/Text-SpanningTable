@@ -302,11 +302,11 @@ sub row {
 		# is this a spanning column? what is the width of it?
 		my $width = 0;
 
-		my $text; # will hold column's text
+		my $text = ''; # will hold column's text
 
 		if (ref $data[$i] eq 'ARRAY') {
 			# this is a spanning column
-			$text = $data[$i]->[1];
+			$text .= $data[$i]->[1] if $data[$i]->[1];
 
 			foreach (0 .. $data[$i]->[0] - 1) {
 				# $data[$i]->[0] is the number of columns this column spans
@@ -323,7 +323,7 @@ sub row {
 			$done += $data[$i]->[0];
 		} else {
 			# no spanning
-			$text = $data[$i];
+			$text .= $data[$i] if $data[$i];
 			$width = $self->{cols}->[$done];
 			$done++;
 		}
