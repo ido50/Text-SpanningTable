@@ -1,4 +1,4 @@
-Text-FlexiTable
+Text-SpanningTable
 
 The README is used to introduce the module and provide instructions on
 how to install the module, any machine dependencies it may have (for
@@ -26,21 +26,21 @@ SUPPORT AND DOCUMENTATION
 After installing, you can find documentation for this module with the
 perldoc command.
 
-    perldoc Text::FlexiTable
+    perldoc Text::SpanningTable
 
 You can also look for information at:
 
     RT, CPAN's request tracker
-        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Text-FlexiTable
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Text-SpanningTable
 
     AnnoCPAN, Annotated CPAN documentation
-        http://annocpan.org/dist/Text-FlexiTable
+        http://annocpan.org/dist/Text-SpanningTable
 
     CPAN Ratings
-        http://cpanratings.perl.org/d/Text-FlexiTable
+        http://cpanratings.perl.org/d/Text-SpanningTable
 
     Search CPAN
-        http://search.cpan.org/dist/Text-FlexiTable/
+        http://search.cpan.org/dist/Text-SpanningTable/
 
 
 LICENSE AND COPYRIGHT

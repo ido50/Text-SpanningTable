@@ -3,11 +3,11 @@
 use strict;
 use warnings;
 use Test::More;
-use Text::FlexiTable;
+use Text::SpanningTable;
 
-my $t = Text::FlexiTable->new(14, 20, 10);
+my $t = Text::SpanningTable->new(14, 20, 10);
 
-ok($t, 'Got a proper Text::FlexiTable object');
+ok($t, 'Got a proper Text::SpanningTable object');
 
 #diag("\n");
 #diag($t->hr('top'));
@@ -18,7 +18,7 @@ ok($t, 'Got a proper Text::FlexiTable object');
 #diag($t->row("now who's the\nfucking child", 'two', 'three'));
 #diag($t->hr('bottom'));
 
-#my $t2 = Text::FlexiTable->new(10, 20, 10, 30);
+#my $t2 = Text::SpanningTable->new(10, 20, 10, 30);
 #diag("\n\n");
 #diag($t2->hr('top'));
 #diag($t2->row('one', 'two', 'three', 'four'));
