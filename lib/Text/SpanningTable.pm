@@ -157,7 +157,7 @@ sub new {
 	my $width; # total width of the table
 
 	# default widths
-	@cols ||= (100);
+	@cols = (100) unless @cols and scalar @cols;
 
 	foreach (@cols) {
 		$width += $_;
