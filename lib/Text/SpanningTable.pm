@@ -104,8 +104,13 @@ spanning), but with a few key differences:
 =over
 
 =item * In C<Text::SimpleTable>, you build your table in the object and
-C<draw> it when you're done. In C<Text::SpanningTable>, you can print
+C<draw()> it when you're done. In C<Text::SpanningTable>, you can print
 your table (or do whatever you want with the output) as it is being built.
+If you don't need to have your tables in "real-time", you can just save the
+output in a variable, but for convenience and compatibility with
+C<Text::SimpleTable>, this module provides a C<draw()> method (which is
+actually an alias for the C<output()> method) that returns the table's
+output.
 
 =item * C<Text::SimpleTable> takes care of the top and bottom borders of
 the table by itself. Due to C<Text::SpanningTable>'s "real-time" nature,
@@ -167,20 +172,26 @@ sub new {
 		cols => \@cols,
 		width => $width,
 		newlines => 0,
+		output => [],
 	}, $class;
 }
 
-=head2 newlines( $boolean )
+=head2 newlines( [$boolean] )
 
 By default, newlines will NOT be added automatically to the output generated
 by this module (for example, when printing a horizontal rule, a newline
 character will not be added). Pass a boolean value to this method to
-enable/disable automatic newline creation.
+enable/disable automatic newline creation. Returns the current value of
+this attribute (after changing it if a boolean value has been passed).
 
 =cut
 
 sub newlines {
-	$_[0]->{newlines} = $_[1];
+	if (defined $_[1]) {
+		$_[0]->{newlines} = $_[1];
+	}
+
+	return $_[0]->{newlines};
 }
 
 =head2 exec( \&sub, [@args] )
@@ -206,7 +217,7 @@ provided, 'middle' we be used. 'top' generates a top border for the table,
 generates a 'double horizontal rule' that is more pronounced and thus can
 be used for headers and footers.
 
-This method will always result in one line.
+This method will always result in one line of text.
 
 =cut
 
@@ -232,8 +243,11 @@ sub hr {
 	# right decoration
 	$output .= $C->{$type}->{right};
 
+	# push this to the output buffer
+	push(@{$self->{output}}, $output);
+
 	# are we adding newlines?
-	$output .= "\n" if $self->{newlines};
+	$output .= "\n" if $self->newlines;
 
 	# if a callback function is defined, invoke it
 	if ($self->{exec}) {
@@ -252,7 +266,7 @@ Convenience method that simply calls C<hr('dhr')>.
 =cut
 
 sub dhr {
-	return shift->hr('dhr');
+	shift->hr('dhr');
 }
 
 =head2 row( @column_data )
@@ -398,9 +412,9 @@ sub row {
 
 	# okay, now we go over the matrix and actually generate the
 	# decorated output
-	my $output = '';
+	my @output;
 	for (my $i = 0; $i < scalar @rows; $i++) {
-		$output .= $C->{row}->{left};
+		my $output = $C->{row}->{left};
 		
 		my $push = 0; # how many columns have we generated already?
 
@@ -447,36 +461,68 @@ sub row {
 			}
 		}
 		
-		$output .= $C->{row}->{right} . "\n";
+		$output .= $C->{row}->{right};
+		
+		push(@output, $output);
 	}
+
+	# save output in the object
+	push(@{$self->{output}}, @output);
 
 	# invoke callback function, if any
 	if ($self->{exec}) {
 		my @args;
 		push(@args, @{$self->{args}}) if $self->{args};
-		foreach (split/\n/, $output) {
-			chomp;
+		foreach (@output) {
+			$_ .= "\n" if $self->newlines && !m/\n$/;
 			push(@args, $_);
 			$self->{exec}->(@args);
 			pop @args;
 		}
 	}
 
-	# is the user expecting an array? if so, split the output using
-	# the newlines, otherwise just return it as is
+	# is the user expecting an array?
 	if (wantarray) {
-		my @ret = split(/\n/, $output);
-		foreach (@ret) {
-			if ($self->{newlines}) {
-				$_ .= "\n" unless m/\n$/;
-			} else {
-				s/\n$//;
-			}
+		foreach (@output) {
+			$_ .= "\n" if $self->newlines && !m/\n$/;
 		}
-		return @ret;
+		return @output;
 	} else {
+		my $output = join("\n", @output);
+		$output .= "\n" if $self->newlines;
+		
 		return $output;
 	}
+}
+
+=head2 output()
+
+=head2 draw()
+
+Returns the entire output generated for the table up to the point of calling
+this method. It should be stressed that this method does not "finalize"
+the table by adding top and bottom borders or anything at all. Decoration
+is done "real-time" and if you don't add top and bottom borders yourself
+(with C<hr('top')> and C<hr('bottom')>, respectively), this method will
+not do that for you. Returned output will or will not contain newlines as
+per the value defined with C<newlines()>.
+
+Both the above methods do the same, C<draw()> is provided as an alias for
+compatibility with L<Text::SimpleTable>.
+
+=cut
+
+sub output {
+	my $self = shift;
+
+	my $output = join("\n", @{$self->{output}});
+	$output .= "\n" if $self->newlines;
+	
+	return $output;
+}
+
+sub draw {
+	shift->output;
 }
 
 =head1 AUTHOR
@@ -485,7 +531,7 @@ Ido Perlmuter, C<< <ido at ido50.net> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-text-flexitable at rt.cpan.org>, or through
+Please report any bugs or feature requests to C<bug-text-spanningtable at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Text-SpanningTable>. I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
@@ -519,8 +565,8 @@ L<http://search.cpan.org/dist/Text-SpanningTable/>
 
 =head1 ACKNOWLEDGEMENTS
 
-Sebastian Riedel and Marcus Ramberg, authors of L<Text::SimpleTable>, on
-which this module is based.
+Sebastian Riedel and Marcus Ramberg, authors of L<Text::SimpleTable>, which
+provided the inspiration of this module.
 
 =head1 LICENSE AND COPYRIGHT
 
