@@ -313,7 +313,7 @@ same as passing:
 
 	( 'one', [5, 'two through six'], ' ', ' ', ' ' )
 
-If a column's data is longer than its width, the data will wrapped
+If a column's data is longer than its width, the data will be wrapped
 and broken, which will result in the row being constructed from more than one
 lines of text. Thus, as opposed to the C<hr()> method, this method has
 two options for a return value: in list context, it will return all the
