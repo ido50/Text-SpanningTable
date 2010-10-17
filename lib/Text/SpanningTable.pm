@@ -75,7 +75,10 @@ Text::SpanningTable - ASCII tables with support for column spanning.
 	
 	# print a row with the first column normally and another column
 	# spanning the remaining three columns
-	print $t->row('normal', [3, 'spans three columns']);
+	print $t->row(
+		'normal column',
+		[3, 'this column spans three columns and also wraps to the next line.']
+	);
 
 	# finally, print the bottom border
 	print $t->hr('bottom');
@@ -88,7 +91,8 @@ Text::SpanningTable - ASCII tables with support for column spanning.
 	+----------+------------------+-------------+-----------------------+
 	| Creedance Clearwater Revival                                      |
 	+----------+------------------+-------------+-----------------------+
-	| normal   | spans three columns                                    |
+	| normal   | this column spans three columns and also wraps to the  |
+	|          | next line.                                             |
 	'----------+------------------+-------------+-----------------------'
 
 =head1 DESCRIPTION
@@ -142,7 +146,7 @@ characters less than defined.
 
 Like C<Text::SimpleTable>, the columns of the table will always be exactly
 the same width as defined, i.e. they will not stretch to accommodate the
-data passed to the rows. If a column's data is too big, it will be wrapped
+data passed to the cells. If a cell's data is too big, it will be wrapped
 (with possible word-breaking using the '-' character), thus resulting in
 more lines of text.
 
@@ -178,7 +182,7 @@ sub new {
 
 =head2 newlines( [$boolean] )
 
-By default, newlines will NOT be added automatically to the output generated
+By default, trailing newlines will NOT be added automatically to the output generated
 by this module (for example, when printing a horizontal rule, a newline
 character will not be added). Pass a boolean value to this method to
 enable/disable automatic newline creation. Returns the current value of
@@ -197,8 +201,19 @@ sub newlines {
 =head2 exec( \&sub, [@args] )
 
 Define a callback function to be invoked whenever calling C<row()>, C<hr()>
-or C<dhr()>. This function will receive, as arguments, the generated output,
-and whatever else you've passed to this function (note C<@args> above).
+or C<dhr()>. Pass this method an anonymous subroutine (C<\&sub> above)
+or a reference to a subroutine, and a list of parameters/arguments you
+wish this subroutine to have (C<@args> above). When called, the subroutine
+will receive, as arguments, the generated output, and C<@args>.
+
+So, for example, you can do:
+
+	$t->exec(sub { my ($output, $log) = @_; $log->info($output); }, $log);
+	
+This would result in C<< $log->info($output) >> being invoken whenever
+calling C<row()>, C<hr()> or C<dhr()>, with C<$output> being the output
+these methods generated. See more info at the C<row()>'s method documentation
+below.
 
 =cut
 
@@ -271,36 +286,51 @@ sub dhr {
 
 =head2 row( @column_data )
 
-Generates a new row of data. The array passed should contain the same
-number of columns defined in the instance object, or, if column spanning
-is used, the total amount of columns should be the same as defined.
+Generates a new row from an array holding the data for the row's columns.
+At a maximum, the number of items in the C<@column_data> array will be
+the number of columns defined when creating the object. At a minimum, it
+will have one item. If the passed data doesn't fill the entire row, the
+rest of the columns will be printed blank (so it is not structurally
+incorrect to pass insufficient data).
 
-When a column doesn't span, simply pass a scalar. When it does span, pass
-an array-ref with two items, the first being the number of columns to span,
-and the second with the scalar data. Passing an array-ref with 1 for the
-first item is the same as just passing the scalar data (as the column will
-simply span itself).
+When a column doesn't span, simply push a scalar to the array. When it
+does span, push an array-ref with two items, the first being the number
+of columns to span, the second being the scalar data to print. Passing an
+array-ref with 1 for the first item is the same as just passing the scalar
+data (as the column will simply span itself).
 
 So, for example, if the table has nine columns, the following is a valid
 value for C<@column_data>:
 
 	( 'one', [2, 'two and three'], 'four', [5, 'five through nine'] )
 
-If a column's data will be longer than its width, the data will wrapped
-and broken, which results in the row being constructed from more than one
-lines of text. Thus, as oppose to the C<hr()> method, this method has
-two options for a return value. In list context, it will return all the
-lines constructing the row (with or without newlines at the end of each
-string, see C<newlines()> for more info). In scalar context, however, it
-will return the row as a string containing newline characters that separate
-the lines of text (once again, a trailing newline will be added to this
-string only if a true value was passed to C<newlines()>).
+The following is also valid:
 
-If a callback function has be defined, it will not be invoked with the
+	( 'one', [5, 'two through six'] )
+
+Columns seven through nine in the above example will be blank, so it's the
+same as passing:
+
+	( 'one', [5, 'two through six'], ' ', ' ', ' ' )
+
+If a column's data is longer than its width, the data will wrapped
+and broken, which will result in the row being constructed from more than one
+lines of text. Thus, as opposed to the C<hr()> method, this method has
+two options for a return value: in list context, it will return all the
+lines constructing the row (with or without newlines at the end of each
+string as per what was defined with the C<newlines() method>); in scalar
+context, however, it will return the row as a string containing newline
+characters that separate the lines of text (once again, a trailing newline
+will be added to this string only if a true value was passed to C<newlines()>).
+
+If a callback function has been defined, it will not be invoked with the
 complete output of this row (i.e. with all the lines of text that has
 resulted), but instead will be called once per each line of text. This is
 what makes the callback function so useful, as it helps you cope with
 problems resulting from all the newline characters separating these lines.
+When the callback function is called on each line of text, the line will
+only contain the newline character at its end if C<newlines()> has been
+set to true.
 
 =cut
 
