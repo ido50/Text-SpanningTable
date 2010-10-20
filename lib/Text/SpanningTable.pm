@@ -49,7 +49,7 @@ Text::SpanningTable - ASCII tables with support for column spanning.
 	# create a table object with four columns of varying widths
 	my $t = Text::SpanningTable->new(10, 20, 15, 25);
 
-	# enable auto-newline adding
+	# enable automatic trailing newlines
 	$t->newlines(1);
 	
 	# print a top border
@@ -68,15 +68,15 @@ Text::SpanningTable - ASCII tables with support for column spanning.
 	print $t->hr;
 	
 	# print another row, with one column that spans all four columns
-	print $t->row([4, 'Creedance Clearwater Revival']);
+	print $t->row([4, 'Creedence Clearwater Revival']);
 	
 	# print a horizontal rule
 	print $t->hr;
 	
-	# print a row with the first column normally and another column
-	# spanning the remaining three columns
+	# print a row with the first column as normal and another column
+	# spanning the remaining three
 	print $t->row(
-		'normal column',
+		'normal',
 		[3, 'this column spans three columns and also wraps to the next line.']
 	);
 
@@ -89,7 +89,7 @@ Text::SpanningTable - ASCII tables with support for column spanning.
 	+==========+==================+=============+=======================+
 	| one      | two              | three       | four                  |
 	+----------+------------------+-------------+-----------------------+
-	| Creedance Clearwater Revival                                      |
+	| Creedence Clearwater Revival                                      |
 	+----------+------------------+-------------+-----------------------+
 	| normal   | this column spans three columns and also wraps to the  |
 	|          | next line.                                             |
@@ -184,7 +184,7 @@ sub new {
 
 By default, trailing newlines will NOT be added automatically to the output generated
 by this module (for example, when printing a horizontal rule, a newline
-character will not be added). Pass a boolean value to this method to
+character will not be appended). Pass a boolean value to this method to
 enable/disable automatic newline creation. Returns the current value of
 this attribute (after changing it if a boolean value has been passed).
 
