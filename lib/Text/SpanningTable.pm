@@ -1,5 +1,8 @@
 package Text::SpanningTable;
 
+our $VERSION = "0.3";
+$VERSION = eval $VERSION;
+
 use warnings;
 use strict;
 
@@ -350,7 +353,7 @@ sub row {
 
 		if (ref $data[$i] eq 'ARRAY') {
 			# this is a spanning column
-			$text .= $data[$i]->[1] if $data[$i]->[1];
+			$text .= $data[$i]->[1] if defined $data[$i]->[1];
 
 			foreach (0 .. $data[$i]->[0] - 1) {
 				# $data[$i]->[0] is the number of columns this column spans
@@ -367,7 +370,7 @@ sub row {
 			$done += $data[$i]->[0];
 		} else {
 			# no spanning
-			$text .= $data[$i] if $data[$i];
+			$text .= $data[$i] if defined $data[$i];
 			$width = $self->{cols}->[$done];
 			$done++;
 		}
@@ -600,7 +603,7 @@ provided the inspiration of this module.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010 Ido Perlmuter.
+Copyright 2010-2013 Ido Perlmuter.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
