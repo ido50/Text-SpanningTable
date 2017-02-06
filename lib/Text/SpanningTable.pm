@@ -1,6 +1,6 @@
 package Text::SpanningTable;
 
-our $VERSION = "0.3";
+our $VERSION = "1.000000";
 $VERSION = eval $VERSION;
 
 use warnings;
@@ -10,33 +10,33 @@ use strict;
 
 # this hash-ref holds the characters used to print the table decorations.
 our $C = {
-	top => {			# the top border, i.e. hr('top')
+	top => {		# the top border, i.e. hr('top')
 		left	=> '.-',
 		border	=> '-',
-		sep	=> '-+-',
+		sep		=> '-+-',
 		right	=> '-.',
 	},
-	middle => {			# simple horizontal rule, i.e. hr('middle') or hr()
+	middle => {		# simple horizontal rule, i.e. hr('middle') or hr()
 		left	=> '+-',
 		border	=> '-',
-		sep	=> '-+-',
+		sep		=> '-+-',
 		right	=> '-+',
 	},
-	dhr => {			# double horizontal rule, i.e. hr('dhr') or dhr()
+	dhr => {		# double horizontal rule, i.e. hr('dhr') or dhr()
 		left	=> '+=',
 		border	=> '=',
-		sep	=> '=+=',
+		sep		=> '=+=',
 		right	=> '=+',
 	},
-	bottom => {			# bottom border, i.e. hr('bottom')
+	bottom => {		# bottom border, i.e. hr('bottom')
 		left	=> "'-",
 		border	=> '-',
-		sep	=> '-+-',
+		sep		=> '-+-',
 		right	=> "-'",
 	},
-	row => {			# row decoration
+	row => {		# row decoration
 		left	=> '| ',
-		sep	=> ' | ',
+		sep		=> ' | ',
 		right	=> ' |',
 	},
 };
@@ -54,28 +54,28 @@ Text::SpanningTable - ASCII tables with support for column spanning.
 
 	# enable automatic trailing newlines
 	$t->newlines(1);
-	
+
 	# print a top border
 	print $t->hr('top');
-	
+
 	# print a row (with header information)
 	print $t->row('Column 1', 'Column 2', 'Column 3', 'Column 4');
-	
+
 	# print a double horizontal rule
 	print $t->dhr; # also $t->hr('dhr');
 
 	# print a row of data
 	print $t->row('one', 'two', 'three', 'four');
-	
+
 	# print a horizontal rule
 	print $t->hr;
-	
+
 	# print another row, with one column that spans all four columns
 	print $t->row([4, 'Creedence Clearwater Revival']);
-	
+
 	# print a horizontal rule
 	print $t->hr;
-	
+
 	# print a row with the first column as normal and another column
 	# spanning the remaining three
 	print $t->row(
@@ -161,6 +161,8 @@ Creates a new instance of C<Text::SpanningTable> with columns of the
 provided widths. If you don't provide any column widths, the table will
 have one column with a width of 100 characters.
 
+Note that currently, a column cannot be less than 6 characters in width.
+
 =cut
 
 sub new {
@@ -172,6 +174,8 @@ sub new {
 	@cols = (100) unless @cols and scalar @cols;
 
 	foreach (@cols) {
+        die "Minimum column size is 6 characters"
+            if $_ < 6;
 		$width += $_;
 	}
 
@@ -179,6 +183,7 @@ sub new {
 		cols => \@cols,
 		width => $width,
 		newlines => 0,
+		decorate => 1,
 		output => [],
 	}, $class;
 }
@@ -189,16 +194,33 @@ By default, trailing newlines will NOT be added automatically to the output gene
 by this module (for example, when printing a horizontal rule, a newline
 character will not be appended). Pass a boolean value to this method to
 enable/disable automatic newline creation. Returns the current value of
-this attribute (after changing it if a boolean value has been passed).
+this attribute (after changing it if a boolean value had been passed).
 
 =cut
 
 sub newlines {
-	if (defined $_[1]) {
-		$_[0]->{newlines} = $_[1];
-	}
+	$_[0]->{newlines} = $_[1]
+		if defined $_[1];
 
 	return $_[0]->{newlines};
+}
+
+=head2 decoration( [$boolean] )
+
+By default, the table will be printed with border decoration. If you want a table
+with no decoration at all, pass this a false value. Returns the current value of this
+attribute (after changing it if a boolean value had been passed).
+
+Note that in undecorated tables, the C<hr()> method will behave differently, as
+documented under L</"hr( ['top'E<verbar>'middle'E<verbar>'bottom'E<verbar>'dhr'] )">.
+
+=cut
+
+sub decoration {
+	$_[0]->{decorate} = $_[1]
+		if defined $_[1];
+
+	$_[0]->{decorate};
 }
 
 =head2 exec( \&sub, [@args] )
@@ -212,7 +234,7 @@ will receive, as arguments, the generated output, and C<@args>.
 So, for example, you can do:
 
 	$t->exec(sub { my ($output, $log) = @_; $log->info($output); }, $log);
-	
+
 This would result in C<< $log->info($output) >> being invoken whenever
 calling C<row()>, C<hr()> or C<dhr()>, with C<$output> being the output
 these methods generated. See more info at the C<row()>'s method documentation
@@ -237,6 +259,10 @@ be used for headers and footers.
 
 This method will always result in one line of text.
 
+If table decoration is off (see L</"decoration( [$boolean] )">), this method
+will return an empty string, unless 'dhr' is passed, in which case a horizontal
+rule made out of dashes will be returned.
+
 =cut
 
 sub hr {
@@ -245,21 +271,29 @@ sub hr {
 	# generate a simple horizontal rule by default
 	$type ||= 'middle';
 
-	# start with the left decoration
-	my $output = $C->{$type}->{left};
+	my $output = '';
 
-	# print a border for every column in the table, with separator
-	# decorations between them
-	for (my $i = 0; $i < scalar @{$self->{cols}}; $i++) {
-		my $width = $self->{cols}->[$i] - 4;
-		$output .= $C->{$type}->{border} x$width;
+	if ($self->{decorate}) {
+		# start with the left decoration
+		$output .= $C->{$type}->{left};
 
-		# print a separator unless this is the last column
-		$output .= $C->{$type}->{sep} unless $i == (scalar @{$self->{cols}} - 1);
-	}
+		# print a border for every column in the table, with separator
+		# decorations between them
+		for (my $i = 0; $i < scalar @{$self->{cols}}; $i++) {
+			my $width = $self->{cols}->[$i] - 4;
+			$output .= $C->{$type}->{border} x$width;
 
-	# right decoration
-	$output .= $C->{$type}->{right};
+			# print a separator unless this is the last column
+			$output .= $C->{$type}->{sep} unless $i == (scalar @{$self->{cols}} - 1);
+		}
+
+		# right decoration
+		$output .= $C->{$type}->{right};
+	} elsif ($type eq 'dhr') {
+		$output .= '-'x$self->{width};
+	} else {
+        return $output;
+    }
 
 	# push this to the output buffer
 	push(@{$self->{output}}, $output);
@@ -363,8 +397,9 @@ sub row {
 			# subtract the number of columns this column spans
 			# minus 1, because two adjacent columns share the
 			# same separating border
-			$width -= $data[$i]->[0] - 1;
-			
+			$width -= $data[$i]->[0] - 1
+                if $self->{decorate};
+
 			# increase $done with the number of columns we have
 			# just parsed
 			$done += $data[$i]->[0];
@@ -375,13 +410,20 @@ sub row {
 			$done++;
 		}
 
-		# make sure the column's data is at least 4 characters long
-		# (because we're subtracting four from every column to make
-		#  room for the borders and separators)
-		$text .= ' 'x(4 - length($text)) if length($text) < 4;
-		
-		# subtract four from the width, for the column's decorations
-		$width -= 4;
+        if ($self->{decorate}) {
+            # make sure the column's data is at least 4 characters long
+            # (because we're subtracting four from every column to make
+            #  room for the borders and separators)
+            $text .= ' 'x(4 - length($text))
+                if length($text) < 4;
+
+            # subtract four from the width, for the column's decorations
+            $width -= 4;
+        } else {
+            $text = ' '
+                if length($text) == 0;
+            $width -= 1;
+        }
 
 		# if the column's text is longer than the available width,
 		# we need to wrap it.
@@ -391,19 +433,19 @@ sub row {
 				# if the $width'th character of the string
 				# is a whitespace, just break it with a
 				# new line.
-				
+
 				# else if the $width'th - 1 character of the string
 				# is a whitespace, this is probably the start
 				# of a word, so add a whitespace and a newline.
-				
+
 				# else if the $width'th + 1 character is a whitespace,
 				# it is probably the end of a word, so just
 				# break it with a newline.
-				
+
 				# else we're in the middle of a word, so
 				# we need to break it with '-'.
-				
-				
+
+
 				if (substr($text, $width - 1, 1) =~ m/^\s$/) {
 					$new_string .= substr($text, 0, $width, '') . "\n";
 				} elsif (substr($text, $width - 2, 1) =~ m/^\s$/) {
@@ -435,8 +477,8 @@ sub row {
 	for (my $i = 1; $i < scalar @rows; $i++) {
 		for (my $j = 0; $j < scalar @{$self->{cols}}; $j++) {
 			next if $rows[$i]->[$j];
-			
-			if (ref $rows[$i - 1]->[$j] eq 'ARRAY') {				
+
+			if (ref $rows[$i - 1]->[$j] eq 'ARRAY') {
 				my $width = length($rows[$i - 1]->[$j]->[1]);
 				$rows[$i]->[$j] = [$rows[$i - 1]->[$j]->[0], ' 'x$width];
 			}
@@ -447,8 +489,8 @@ sub row {
 	# decorated output
 	my @output;
 	for (my $i = 0; $i < scalar @rows; $i++) {
-		my $output = $C->{row}->{left};
-		
+		my $output = $self->{decorate} ? $C->{row}->{left} : '';
+
 		my $push = 0; # how many columns have we generated already?
 
 		# print the columns
@@ -469,7 +511,8 @@ sub row {
 				$text = $rows[$i]->[$j];
 				$width = $self->{cols}->[$push];
 			}
-			$width -= 4;
+
+			$width -= $self->{decorate} ? 4 : 1;
 
 			# is there any text for this column? if not just
 			# generate whitespace
@@ -479,23 +522,30 @@ sub row {
 			$push += ref $rows[$i]->[$j] eq 'ARRAY' ? $rows[$i]->[$j]->[0] : 1;
 
 			# print a separator, unless this is the last column
-			$output .= $C->{row}->{sep} unless $push == (scalar @{$self->{cols}});
+            if ($push != scalar @{$self->{cols}}) {
+    			$output .= $self->{decorate} ? $C->{row}->{sep} : ' ';
+            }
 		}
 
 		# have we processed all columns? (i.e. has the user provided
 		# data for all the columns?) if not, generate empty columns
 		my $left = scalar @{$self->{cols}} - $push;
-		
+
 		if ($left) {
 			for (my $k = 1; $k <= $left; $k++) {
-				my $width = $self->{cols}->[$push++] - 4;
+				my $width = $self->{cols}->[$push++];
+                $width -= 4
+                    if $self->{decorate};
 				$output .= ' 'x$width;
-				$output .= $C->{row}->{sep} unless $k == $left;
+                if ($k != $left) {
+    				$output .= $self->{decorate} ? $C->{row}->{sep} : ' ';
+                }
 			}
 		}
-		
-		$output .= $C->{row}->{right};
-		
+
+		$output .= $C->{row}->{right}
+			if $self->{decorate};
+
 		push(@output, $output);
 	}
 
@@ -515,17 +565,10 @@ sub row {
 	}
 
 	# is the user expecting an array?
-	if (wantarray) {
-		foreach (@output) {
-			$_ .= "\n" if $self->newlines && !m/\n$/;
-		}
-		return @output;
-	} else {
-		my $output = join("\n", @output);
-		$output .= "\n" if $self->newlines;
-		
-		return $output;
-	}
+    foreach (@output) {
+        $_ .= "\n" if $self->newlines && !m/\n$/;
+    }
+    return wantarray ? @output : join("\n", @output);
 }
 
 =head2 output()
@@ -550,7 +593,7 @@ sub output {
 
 	my $output = join("\n", @{$self->{output}});
 	$output .= "\n" if $self->newlines;
-	
+
 	return $output;
 }
 
@@ -603,13 +646,19 @@ provided the inspiration of this module.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010-2013 Ido Perlmuter.
+Copyright 2017 Ido Perlmuter
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-See http://dev.perl.org/licenses/ for more information.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 =cut
 

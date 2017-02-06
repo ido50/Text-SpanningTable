@@ -13,3 +13,5 @@ cover_db
 pod2htm*.tmp
 Text-SpanningTable-*
 *.cache
+*.swp
+.build

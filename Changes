@@ -1,6 +1,9 @@
 Revision history for Text-SpanningTable
 
 {{$NEXT}}
+	- Feature: ability to print table with no decorations at all
+	- Bugfix: zeros and other false values failed to appear in columns
+    - Other: move to the Apache License 2.0
 
 0.2       2010-10-17 14:26:14 Asia/Jerusalem
 	- Just some documentation fixes.
